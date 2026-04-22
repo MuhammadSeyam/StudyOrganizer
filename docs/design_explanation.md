@@ -1,7 +1,7 @@
 # Smart Study Planner — Design Pattern Explanation
 
 > **Course:** Software Design Patterns  
-> **Project:** Smart Study Planner (AI-Style Study Organizer)
+> **Project:** Smart Study Planner (AI-Style Study Organizer) — v2 (CLI + GUI)
 
 This document explains each design pattern used in the project, why it was chosen, how it is implemented, and how it maps to the theory taught in the course.
 
@@ -41,7 +41,7 @@ class StudyPlanner(Subject):
 
 ### ✅ Why Singleton fits here
 - The planner holds the master task list. Two planners with different task lists would cause data inconsistency.
-- Every module (CLI, tests, future API) calls `StudyPlanner.get_instance()` and receives the **same object** with the same state.
+- Every module (CLI, GUI, tests, future API) calls `StudyPlanner.get_instance()` and receives the **same object** with the same state. This is why adding a Tkinter GUI required **zero changes** to the planner.
 
 ### ⚡ SOLID Connection
 - **Single Responsibility**: the planner manages tasks; the Singleton mechanism is separated into `__new__` + `get_instance`.
@@ -111,6 +111,7 @@ The planner's core logic never changes — only the strategy object is swapped.
 | Concrete: **ConsoleNotifier** | `patterns/observer.py` |
 | Concrete: **DeadlineWatcher** | `patterns/observer.py` |
 | Concrete: **LogNotifier** | `patterns/observer.py` |
+| Concrete: **GUINotifier** *(new)* | `ui/gui_app.py` |
 | Subject (concrete): **StudyPlanner** | `scheduler/planner.py` |
 
 ### 🔍 How it works
@@ -118,18 +119,22 @@ The planner's core logic never changes — only the strategy object is swapped.
 ```
 StudyPlanner (Subject)              Observers
   _observers: List[Observer]
-  notify_observers(event, task) ──► ConsoleNotifier.update()
-                                ──► DeadlineWatcher.update()
-                                ──► LogNotifier.update()
+  notify_observers(event, task) ──► ConsoleNotifier.update()   (prints to terminal)
+                                ──► DeadlineWatcher.update()   (deadline proximity alert)
+                                ──► LogNotifier.update()       (writes to event log)
+                                ──► GUINotifier.update()       (updates GUI status bar)
 ```
 
 Every `add_task`, `edit_task`, `delete_task`, and `update_status` call ends with `self.notify_observers(...)`.  Observers decide independently how to react:
 
-| Observer | What it does |
-|---|---|
-| `ConsoleNotifier` | Prints coloured message to terminal |
-| `DeadlineWatcher` | Checks if deadline is within 48 h and warns |
-| `LogNotifier` | Appends timestamped entry to in-memory log list |
+| Observer | Where defined | What it does |
+|---|---|---|
+| `ConsoleNotifier` | `patterns/observer.py` | Prints coloured message to terminal |
+| `DeadlineWatcher` | `patterns/observer.py` | Warns when deadline is within 48 h |
+| `LogNotifier` | `patterns/observer.py` | Appends timestamped entry to in-memory log |
+| `GUINotifier` | `ui/gui_app.py` | Updates the Tkinter status bar live |
+
+> **Open/Closed in action:** `GUINotifier` was added for the GUI mode without touching any existing observer class or the planner. It simply implements the `Observer` interface.
 
 ### ✅ Why Observer fits here
 When a task changes, multiple independent subsystems need to react (UI, logger, alarm). Observer decouples them completely — the planner doesn't know or care who is listening.
@@ -197,7 +202,7 @@ The planner and CLI should never construct task objects directly. Centralising c
 |---|---|
 | Adaptee: **CalendarSystem** | `patterns/adapter.py` |
 | Adapter: **TaskImportAdapter** | `patterns/adapter.py` |
-| Client: **StudyPlanner** (via CLI) | `scheduler/planner.py` |
+| Client: **StudyPlanner** (via CLI and GUI) | `scheduler/planner.py` |
 
 ### 🔍 How it works
 
@@ -229,14 +234,20 @@ Real systems must integrate with external data sources (Google Calendar, univers
 ## Pattern Interaction Summary
 
 ```
-main.py
-  └── ui/cli.py (presentation only)
-        └── scheduler/planner.py  ← SINGLETON + OBSERVER Subject + STRATEGY Context
-              ├── patterns/strategy.py  ← STRATEGY (3 concrete algorithms)
-              ├── patterns/observer.py  ← OBSERVER (3 concrete observers)
-              ├── patterns/factory.py   ← FACTORY METHOD
-              │     └── models/task.py  ← abstract + concrete products
-              └── patterns/adapter.py  ← ADAPTER (wraps CalendarSystem)
+main.py  (mode selector)
+  ├── ui/cli.py       (CLI presentation only)
+  └── ui/gui_app.py  (GUI presentation only — adds GUINotifier observer)
+        │
+        └── Both share the same backend:
+              scheduler/planner.py  ← SINGLETON + OBSERVER Subject + STRATEGY Context
+                ├── patterns/strategy.py  ← STRATEGY (3 concrete algorithms)
+                ├── patterns/observer.py  ← OBSERVER (3+1 concrete observers)
+                ├── patterns/factory.py   ← FACTORY METHOD
+                │     └── models/task.py  ← abstract + concrete products
+                └── patterns/adapter.py  ← ADAPTER (wraps CalendarSystem)
 ```
 
 All five patterns collaborate seamlessly, each playing a distinct role with zero overlap of responsibility — a clean demonstration of how patterns are **composable**.
+
+The dual-mode architecture also illustrates a key software engineering principle:
+> **Separate presentation from business logic.** The same planner, factory, strategies, and observers work identically whether the user is typing in a terminal or clicking buttons in a window.

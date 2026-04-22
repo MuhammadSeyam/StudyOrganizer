@@ -5,14 +5,26 @@ with sample inputs and the corresponding outputs.
 
 ---
 
-## Startup
+## Startup — Mode Selection
 
 ```
 $ python main.py
 
-  🎓 Welcome to Smart Study Planner!
+============================================
+   Smart Study Planner -- Launcher
+============================================
+  Select Application Mode:
+    1  ->  CLI  (Terminal interface)
+    2  ->  GUI  (Tkinter window)
+============================================
+  Your choice [1/2]: 1
+
+  Launching CLI mode...
+
   Observers registered: ConsoleNotifier, DeadlineWatcher, LogNotifier
   Default strategy: Sort by Priority
+
+Copying from Mode 1 (CLI) below:
 
 ╔════════════════════════════════════════╗
 ║     🎓  Smart Study Planner  🎓         ║
@@ -236,6 +248,8 @@ $ python main.py
 
 ## Full Pattern Demonstration Summary
 
+### CLI Demo
+
 | Demo Step | Pattern Demonstrated | What you saw |
 |---|---|---|
 | Add Task | **Factory Method** | `TaskFactory.create()` made the right object type |
@@ -244,3 +258,91 @@ $ python main.py
 | Update Status | **Observer** | Three observers notified instantly |
 | Import Calendar | **Adapter** | Incompatible `CalendarSystem` data converted seamlessly |
 | Event Log | **Observer** | `LogNotifier` captured all events with timestamps |
+
+---
+
+## GUI Demo (Mode 2)
+
+```
+$ python main.py
+  Your choice [1/2]: 2
+
+  Launching GUI mode...
+```
+
+A dark-themed Tkinter window opens:
+
+```
++------------------------------------------------------------------+
+|  🎓  Smart Study Planner        Schedule by: [By Priority    v] |
++------------------------------------------------------------------+
+| [+ Add Task] [Edit] [Delete] [Update Status] [Import] [Log]     |
++----+-------+---------------------+------+---------------+-------+
+| #  | Type  | Title               | Prio | Deadline      | Status|
++----+-------+---------------------+------+---------------+-------+
+|  1 | Exam  | Data Structures ... |  1   | 2026-05-25 .. | Pend. |
+|  2 | Study | Revise Algorithms   |  2   | 2026-05-22 .. | Pend. |
+|  3 | Break | Coffee Break        |  5   | 2026-05-22 .. | Pend. |
++------------------------------------------------------------------+
+| 🔔  Task added  ·  Task #1 'Data Structures Final Exam'         |
++------------------------------------------------------------------+
+```
+
+### GUI Actions and Observer Output
+
+**Click "+ Add Task"** → a form dialog opens:
+```
+  Task Type:  [Exam        v]
+  Title:      [OS Final Exam              ]
+  Priority:   [1  ]
+  Deadline:   [2026-06-01 09:00           ]
+  Duration:   [3.0     ]
+  Course:     [Operating Systems          ]
+  [Add Task]  [Cancel]
+```
+After clicking Add Task, the status bar updates instantly:
+```
+🔔  Task added  ·  Task #4 'OS Final Exam'
+```
+
+**Switch strategy** via the top-right dropdown:
+```
+Schedule by: [By Deadline  v]
+```
+Table re-sorts immediately — earliest deadline first.
+Status bar: `🔔  Scheduling strategy changed to: Sort by Deadline (Earliest First)`
+
+**Click "Update Status"** → radio button dialog:
+```
+  Task #2: Revise Algorithms
+  ( ) Pending
+  (*) In Progress
+  ( ) Done
+  [Apply]  [Cancel]
+```
+Row colour changes to green after applying.
+
+**Click "📥 Import Calendar"**:
+```
+  ✅  3 tasks imported from CalendarSystem.
+```
+
+**Click "📜 Event Log"** → scrollable window:
+```
+  [2026-04-22 15:05:01] | Task #1 - Task added
+  [2026-04-22 15:05:22] | Task #2 - Task added
+  [2026-04-22 15:06:10] - Strategy changed: Sort by Deadline
+  [2026-04-22 15:06:45] | Task #2 - Status changed to 'In Progress'
+  [2026-04-22 15:07:02] | Task #3 - Task imported from external source
+```
+
+### GUI Pattern Demonstration Summary
+
+| GUI Action | Pattern Demonstrated | What happened |
+|---|---|---|
+| Add Task button | **Factory Method** | Factory created correct task subclass |
+| Window state consistent | **Singleton** | Same planner used regardless of how many times GUI is launched |
+| Strategy dropdown | **Strategy** | Sort algorithm swapped live, table re-sorted |
+| Status bar update | **Observer** | `GUINotifier` reacted to planner event |
+| Import Calendar button | **Adapter** | `TaskImportAdapter` translated CalendarSystem data |
+| Event Log button | **Observer** | `LogNotifier` captured all events with timestamps |
